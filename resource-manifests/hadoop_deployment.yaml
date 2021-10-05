@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hadoop-app
+  labels:
+    app: hadoop-app
+spec:
+  selector:
+     matchLabels:
+       app: hadoop-app
+  replicas: 2
+  minReadySeconds: 15
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: 
+      maxUnavailable: 1
+      maxSurge: 1 
+  template:
+    metadata:
+      labels:
+        app: hadoop-app
+    spec:
+      containers:
+        - image: shihsunl/14848_proj_hadoop
+          imagePullPolicy: Always
+          name: hadoop-app
+          ports:
+            - containerPort: 8088
