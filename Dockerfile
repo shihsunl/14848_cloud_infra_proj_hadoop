@@ -44,4 +44,9 @@ RUN echo "export APPLICATION_WEB_PROXY_BASE=hadoop/" >> /temp/hadoop/hadoop-3.3.
 RUN echo "sleep infinity" >> /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh
 
 WORKDIR /temp
+RUN git clone https://github.com/shihsunl/14848_cloud_infra_proj_hadoop.git
+RUN cp -r /temp/14848_cloud_infra_proj_hadoop/* /temp/
+RUN cp -r /temp/hadoop_fix/hadoop-yarn-common-3.3.1.jar /temp/hadoop/hadoop-3.3.1/share/hadoop/yarn/
+
+WORKDIR /temp
 CMD /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh 
