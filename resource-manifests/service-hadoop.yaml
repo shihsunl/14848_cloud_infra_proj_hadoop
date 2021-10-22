@@ -7,5 +7,10 @@ spec:
     - port: 80
       protocol: TCP
       targetPort: 8088
+      name: hadoopport
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+      name: terminalport
   selector:
     app: hadoop-app

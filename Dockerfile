@@ -6,11 +6,11 @@ ENV PORT 8088
 RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d
 ENV JAVA_HOME=/usr/lib/jdk1.8.0_211
 ENV PATH=$PATH:$JAVA_HOME/bin
-EXPOSE 8088
+EXPOSE 8088 8080
 
 # setup
 RUN apt-get update
-RUN apt-get install -y git g++ software-properties-common build-essential language-pack-en unzip curl wget vim libpam0g-dev libssl-dev cmake cron libssl-dev openssl iputils-ping
+RUN apt-get install -y git g++ software-properties-common build-essential language-pack-en unzip curl wget vim libpam0g-dev libssl-dev cmake cron libssl-dev openssl iputils-ping openssh-server sudo
 #RUN apt-get install -y python3
 #RUN add-apt-repository ppa:deadsnakes/ppa -y
 #RUN apt-get install -y python3-pip
@@ -41,13 +41,17 @@ RUN echo "export YARN_RESOURCEMANAGER_USER=root" >> /temp/hadoop/hadoop-3.3.1/et
 RUN echo "export YARN_NODEMANAGER_USER=root" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
 RUN echo "export JAVA_HOME=/usr/lib/jdk1.8.0_211" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
 RUN echo "export APPLICATION_WEB_PROXY_BASE=hadoop/" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
-RUN echo "sleep infinity" >> /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh
+#RUN echo "sleep infinity" >> /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh
 
 WORKDIR /temp
 RUN git clone https://github.com/shihsunl/14848_cloud_infra_proj_hadoop.git
 RUN cp -r /temp/14848_cloud_infra_proj_hadoop/* /temp/
 # fix issue for showing a image when using reverse proxy base url
 RUN cp -r /temp/hadoop_fix/hadoop-yarn-common-3.3.1.jar /temp/hadoop/hadoop-3.3.1/share/hadoop/yarn/
+
+# ssh for debugging
+RUN useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1000 test
+RUN echo 'test:test' | chpasswd # sets the password for the user test to test
 
 # web terminal
 WORKDIR /temp
@@ -56,4 +60,4 @@ RUN wget https://github.com/yudai/gotty/releases/download/v1.0.1/gotty_linux_amd
     echo "/temp/gotty -w bash > /temp/gotty.out >2&1 &" > gotty.sh && chmod 777 /temp/*
 
 WORKDIR /temp
-CMD nohup /temp/gotty.sh && /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh 
+CMD /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh && /temp/gotty -w bash
