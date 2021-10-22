@@ -46,7 +46,14 @@ RUN echo "sleep infinity" >> /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh
 WORKDIR /temp
 RUN git clone https://github.com/shihsunl/14848_cloud_infra_proj_hadoop.git
 RUN cp -r /temp/14848_cloud_infra_proj_hadoop/* /temp/
+# fix issue for showing a image when using reverse proxy base url
 RUN cp -r /temp/hadoop_fix/hadoop-yarn-common-3.3.1.jar /temp/hadoop/hadoop-3.3.1/share/hadoop/yarn/
 
+# web terminal
 WORKDIR /temp
-CMD /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh 
+RUN wget https://github.com/yudai/gotty/releases/download/v1.0.1/gotty_linux_amd64.tar.gz &&\
+    tar -zxvf gotty_linux_amd64.tar.gz &&\
+    echo "/temp/gotty -w bash > /temp/gotty.out >2&1 &" > gotty.sh && chmod 777 /temp/*
+
+WORKDIR /temp
+CMD nohup /temp/gotty.sh && /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh 
