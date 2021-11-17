@@ -30,12 +30,19 @@ RUN tar -zxvf jdk-8u211-linux-x64.tar.gz
 RUN cp -R /temp/install/jdk1.8.0_211 /usr/lib/jdk1.8.0_211
 RUN ln -s /usr/lib/jdk1.8.0_211/bin/java /etc/alternatives/java
 
+# ssh for debugging
+RUN useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1000 test
+RUN echo 'test:test' | chpasswd # sets the password for the user test to test
+
+# generate a ssh key
+RUN ssh-keygen -q -t rsa -N '' -f /root/.ssh/id_rsa &&\
+    cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+
 # install hadoop
 RUN mkdir /temp/hadoop
 WORKDIR /temp/hadoop
 RUN curl -L https://dlcdn.apache.org/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz -o hadoop-3.3.1.tar.gz
 RUN tar -zxvf hadoop-3.3.1.tar.gz
-ENV HADOOP_HOME=/temp/hadoop/hadoop-3.3.1
 
 # set up config
 RUN echo "export HDFS_NAMENODE_USER=root" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
@@ -45,21 +52,34 @@ RUN echo "export YARN_RESOURCEMANAGER_USER=root" >> /temp/hadoop/hadoop-3.3.1/et
 RUN echo "export YARN_NODEMANAGER_USER=root" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
 RUN echo "export JAVA_HOME=/usr/lib/jdk1.8.0_211" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
 RUN echo "export APPLICATION_WEB_PROXY_BASE=hadoop/" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
-#RUN echo "sleep infinity" >> /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh
+RUN echo "export CORE_CONF_fs_defaultFS=hdfs://localhost:9000" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
+RUN echo "export HDFS_CONF_dfs_namenode_name_dir=file:///tmp/hadoop-root/dfs/name" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
+RUN echo "export HDFS_CONF_dfs_webhdfs_enabled=true" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
+RUN echo "export HDFS_CONF_dfs_permissions_enabled=false" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
+RUN echo "export HDFS_CONF_dfs_namenode_datanode_registration_ip___hostname___check=false" >> /temp/hadoop/hadoop-3.3.1/etc/hadoop/hadoop-env.sh
 
+# Setup configuration
+RUN sed -i '/^<configuration>.*/a <property><name>fs.defaultFS</name><value>hdfs://localhost:9000</value></property><property><name>dfs.replication</name><value>2</value></property>' /temp/hadoop/hadoop-3.3.1/etc/hadoop/core-site.xml
+#cp temp/hadoop/hadoop-3.3.1/etc/hadoop/new_core-site.xml /temp/hadoop/hadoop-3.3.1/etc/hadoop/core-site.xml
+
+RUN sed -i '/^<configuration>.*/a <property><name>dfs.namenode.name.dir</name><value>/tmp/hadoop-root/dfs/data/nameNode</value></property><property><name>dfs.datanode.data.dir</name><value>/tmp/hadoop-root/dfs/data/dataNode</value></property><property><name>dfs.replication</name><value>2</value></property>' /temp/hadoop/hadoop-3.3.1/etc/hadoop/hdfs-site.xml
+#cp temp/hadoop/hadoop-3.3.1/etc/hadoop/new_hdfs-site.xml /temp/hadoop/hadoop-3.3.1/etc/hadoop/hdfs-site.xml
+
+RUN /etc/init.d/ssh restart && /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh
+
+RUN mkdir -p /tmp/hadoop-root/dfs/data/dataNode &&\
+    mkdir -p /tmp/hadoop-root/dfs/data/nameNode &&\
+    chmod -R 755 /tmp/hadoop-root/dfs/data/
+
+ENV HDFS_CONF_dfs_namenode_name_dir=file:///tmp/hadoop-root/dfs/name
+RUN hdfs namenode -format
+
+# Fix yarn logo
 WORKDIR /temp
 RUN git clone https://github.com/shihsunl/14848_cloud_infra_proj_hadoop.git
 RUN cp -r /temp/14848_cloud_infra_proj_hadoop/* /temp/
 # fix issue for showing a image when using reverse proxy base url
 RUN cp -r /temp/hadoop_fix/hadoop-yarn-common-3.3.1.jar /temp/hadoop/hadoop-3.3.1/share/hadoop/yarn/
-
-# ssh for debugging
-RUN useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1000 test
-RUN echo 'test:test' | chpasswd # sets the password for the user test to test
-
-# generate a ssh key
-RUN ssh-keygen -q -t rsa -N '' -f /root/.ssh/id_rsa &&\
-    cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
 
 # web terminal
 WORKDIR /temp
