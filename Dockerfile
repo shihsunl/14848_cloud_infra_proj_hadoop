@@ -2,15 +2,19 @@ FROM ubuntu:18.04
 ENV DEBIAN_FRONTEND noninteractive
 MAINTAINER Shih-Sung-Lin
 ENV PORT 8088
+ENV DOCKER_HOSTNAME=hadoop-service
+ENV HOSTNAME=hadoop-service
 
 RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d
 ENV JAVA_HOME=/usr/lib/jdk1.8.0_211
-ENV PATH=$PATH:$JAVA_HOME/bin
-EXPOSE 8088 8080
+ENV HADOOP_HOME=/temp/hadoop/hadoop-3.3.1
+ENV PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin
+EXPOSE 8088 8080 8090 8020 8042 8033 8040 8044 8048 8188 8021 8190 8047 8788 8046 8045 8049 8089 8091 8485 8480 8481 8030 8031 8032 9000 9864  9865 9866 9868 9869 9870 10020 16010 16030 19888 19890 50070 50470 50075 50475 50090 50010 50020 50030 50060 51111 50200
+# docker run -p 8088:8088 -p 8080:8080 -p 8090:8090 -p 8042:8042 -p 50070:50070 -p 50470:50470 -p 8020:8020 -p 9000:9000 -p 8033:8033 -p 8040:8040 -p 8048:8048 -p 8044:8044 -p 8188:8188 -p 8021:8021 -p 8190:8190 -p 8047:8047 -p 8788:8788 -p 8046:8046 -p 8045:8045 -p 8049:8049 -p 8089:8089 -p 8091:8091 -p 8030:8030 -p 8031:8031 -p 8032:8032 -p 50071:50070 -p 50075:50075 -p 50010:50010 -p 50020:50020 -p 50100:50100 -p 50060:50060 -p 50030:50030 -p 50090:50090 -p 9870:9870 -p 9864:9864 -p 9868:9868 -p 16010:16010 -p 16030:16030 --rm -it shihsunl/14848_proj_hadoop
 
 # setup
 RUN apt-get update
-RUN apt-get install -y git g++ software-properties-common build-essential language-pack-en unzip curl wget vim libpam0g-dev libssl-dev cmake cron libssl-dev openssl iputils-ping openssh-server sudo
+RUN apt-get install -y git g++ software-properties-common build-essential language-pack-en unzip curl wget vim libpam0g-dev libssl-dev cmake cron libssl-dev openssl iputils-ping openssh-server sudo openssh-client
 #RUN apt-get install -y python3
 #RUN add-apt-repository ppa:deadsnakes/ppa -y
 #RUN apt-get install -y python3-pip
@@ -53,6 +57,10 @@ RUN cp -r /temp/hadoop_fix/hadoop-yarn-common-3.3.1.jar /temp/hadoop/hadoop-3.3.
 RUN useradd -rm -d /home/ubuntu -s /bin/bash -g root -G sudo -u 1000 test
 RUN echo 'test:test' | chpasswd # sets the password for the user test to test
 
+# generate a ssh key
+RUN ssh-keygen -q -t rsa -N '' -f /root/.ssh/id_rsa &&\
+    cat /root/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+
 # web terminal
 WORKDIR /temp
 RUN wget https://github.com/yudai/gotty/releases/download/v2.0.0-alpha.3/gotty_2.0.0-alpha.3_linux_amd64.tar.gz &&\
@@ -60,4 +68,4 @@ RUN wget https://github.com/yudai/gotty/releases/download/v2.0.0-alpha.3/gotty_2
     echo "/temp/gotty -a 0.0.0.0 --ws-origin '.*' -w bash > /temp/gotty.out >2&1 &" > /temp/gotty.sh && chmod 777 /temp/*
 
 WORKDIR /temp
-CMD /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh && /temp/gotty -a 0.0.0.0 --ws-origin ".*" -w bash
+CMD /etc/init.d/ssh restart && /temp/hadoop/hadoop-3.3.1/sbin/start-all.sh && /temp/gotty -a 0.0.0.0 --ws-origin ".*" -w bash

@@ -27,3 +27,4 @@ spec:
           ports:
             - containerPort: 8088
             - containerPort: 8080
+            - containerPort: 8042
